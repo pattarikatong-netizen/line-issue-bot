@@ -16,7 +16,6 @@ const client = new line.Client(config);
 // ================= GOOGLE SHEETS CONFIG =================
 const SPREADSHEET_ID = '1eXVw-PJMfluISSXpewOBJjuuPtx7t1vUhtPD3Q-tZUI';
 
-// ดึง JSON จาก Environment Variable
 const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
 
 const auth = new google.auth.GoogleAuth({
@@ -43,7 +42,7 @@ app.post('/webhook', line.middleware(config), async (req, res) => {
 // ================= EVENT HANDLER =================
 async function handleEvent(event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
-    return Promise.resolve(null);
+    return null;
   }
 
   if (event.message.text.startsWith('#issue')) {
@@ -52,23 +51,22 @@ async function handleEvent(event) {
     const ticketNumber = 'T' + Date.now();
     const userId = event.source.userId;
 
-    // ดึงชื่อจาก LINE
     const profile = await client.getProfile(userId);
     const displayName = profile.displayName;
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: 'issue!A:G',   // 👈 ตอนนี้ต้องเป็น A:G
+      range: 'issue!A:G',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
-          new Date().toLocaleString(), // A Date
-          ticketNumber,                // B TicketID
-          userId,                      // C UserId
-          displayName,                 // D DisplayName
-          issueText,                   // E Message
-          'OPEN',                      // F Status
-          'LINE'                       // G Source
+          new Date().toLocaleString(),
+          ticketNumber,
+          userId,
+          displayName,
+          issueText,
+          'OPEN',
+          'LINE'
         ]]
       }
     });
@@ -76,15 +74,6 @@ async function handleEvent(event) {
     return client.replyMessage(event.replyToken, {
       type: 'text',
       text: `รับ issue แล้ว 👨‍💻\nเลข Ticket: ${ticketNumber}`
-    });
-  }
-
-  return Promise.resolve(null);
-}
-    // ตอบกลับในไลน์
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: `รับ issue แล้ว เดี๋ยวจัดการให้ 👨‍💻\nเลข Ticket: ${ticketNumber}\n\nกรุณาไปติดตามงานกับบอทในแชทส่วนตัว`
     });
   }
 
