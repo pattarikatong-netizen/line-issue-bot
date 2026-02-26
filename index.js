@@ -78,7 +78,23 @@ async function handleEvent(event) {
       timeZone: 'Asia/Bangkok'
     });
 
-    const profile = await client.getProfile(userId);
+    /* ===== ดึงชื่อผู้ใช้ รองรับ DM + Group ===== */
+    let displayName = 'Unknown';
+
+    try {
+      if (sourceType === 'user') {
+        const profile = await client.getProfile(userId);
+        displayName = profile.displayName;
+      } else if (sourceType === 'group') {
+        const profile = await client.getGroupMemberProfile(
+          event.source.groupId,
+          userId
+        );
+        displayName = profile.displayName;
+      }
+    } catch (err) {
+      console.log("Profile error:", err.message);
+    }
 
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
@@ -86,18 +102,18 @@ async function handleEvent(event) {
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
-          nowText,              // A
-          ticketNumber,         // B
-          userId,               // C
-          profile.displayName,  // D
-          issueText,            // E
-          'OPEN',               // F
-          sourceType,           // G
-          priority,             // H
-          'รับเรื่องแล้ว',      // I
-          '',                   // J CompleteDate
-          '',                   // K Remark
-          ''                    // L Overdue
+          nowText,          // A วันที่แจ้ง
+          ticketNumber,     // B TicketID
+          userId,           // C UserID
+          displayName,      // D ชื่อ
+          issueText,        // E รายละเอียด
+          'OPEN',           // F Status
+          sourceType,       // G ประเภท
+          priority,         // H ความเร่งด่วน
+          'รับเรื่องแล้ว',  // I Status Update
+          '',               // J CompleteDate
+          '',               // K Remark
+          ''                // L Overdue
         ]]
       }
     });
@@ -106,21 +122,6 @@ async function handleEvent(event) {
       type: 'text',
       text: `✅ รับเรื่องแล้ว\nTicket: ${ticketNumber}\nความเร่งด่วน: ${priority}`
     });
-  }
-
-  return null;
-}
-async function handleEvent(event) {
-
-  console.log("EVENT:", JSON.stringify(event));
-
-  if (event.type === 'message' && event.message.type === 'text') {
-
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: 'บอทยังทำงานปกติ'
-    });
-
   }
 
   return null;
