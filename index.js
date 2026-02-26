@@ -45,39 +45,41 @@ async function handleEvent(event) {
     return null;
   }
 
-  if (event.message.text.startsWith('#issue')) {
-
-    const issueText = event.message.text.replace('#issue', '').trim();
-    const ticketNumber = 'T' + Date.now();
-    const userId = event.source.userId;
-
-    const profile = await client.getProfile(userId);
-    const displayName = profile.displayName;
-
-    await sheets.spreadsheets.values.append({
-      spreadsheetId: SPREADSHEET_ID,
-      range: 'issue!A:G',
-      valueInputOption: 'USER_ENTERED',
-      requestBody: {
-        values: [[
-          new Date().toLocaleString(),
-          ticketNumber,
-          userId,
-          displayName,
-          issueText,
-          'OPEN',
-          'LINE'
-        ]]
-      }
-    });
-
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: `รับ issue แล้ว 👨‍💻\nเลข Ticket: ${ticketNumber}`
-    });
+  if (!event.message.text.startsWith('#issue')) {
+    return null;
   }
 
-  return null;
+  const issueText = event.message.text.replace('#issue', '').trim();
+  const ticketNumber = 'T' + Date.now();
+  const userId = event.source.userId;
+  const sourceType = event.source.type; // 👈 user / group / room
+
+  // ดึงชื่อจาก LINE
+  const profile = await client.getProfile(userId);
+  const displayName = profile.displayName;
+
+  // บันทึกลง Google Sheet
+  await sheets.spreadsheets.values.append({
+    spreadsheetId: SPREADSHEET_ID,
+    range: 'issue!A:G',
+    valueInputOption: 'USER_ENTERED',
+    requestBody: {
+      values: [[
+        new Date().toLocaleString(), // A Date
+        ticketNumber,                // B TicketID
+        userId,                      // C UserId
+        displayName,                 // D DisplayName
+        issueText,                   // E Message
+        'OPEN',                      // F Status
+        sourceType                   // G SourceType
+      ]]
+    }
+  });
+
+  return client.replyMessage(event.replyToken, {
+    type: 'text',
+    text: `รับ issue แล้ว 👨‍💻\nเลข Ticket: ${ticketNumber}`
+  });
 }
 
 // ================= SERVER =================
