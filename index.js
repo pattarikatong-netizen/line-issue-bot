@@ -110,6 +110,21 @@ async function handleEvent(event) {
 
   return null;
 }
+async function handleEvent(event) {
+
+  console.log("EVENT:", JSON.stringify(event));
+
+  if (event.type === 'message' && event.message.type === 'text') {
+
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: 'บอทยังทำงานปกติ'
+    });
+
+  }
+
+  return null;
+}
 
 /* ================= 1️⃣ SLA CHECK (09:00) ================= */
 cron.schedule('0 9 * * *', async () => {
