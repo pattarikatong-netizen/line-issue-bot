@@ -79,7 +79,6 @@ async function handleEvent(event) {
       timeZone: 'Asia/Bangkok'
     });
 
-    /* ===== ดึงชื่อผู้ใช้ รองรับ DM + Group ===== */
     let displayName = 'Unknown';
 
     try {
@@ -97,7 +96,6 @@ async function handleEvent(event) {
       console.log("Profile error:", err.message);
     }
 
-    /* ===== บันทึกลง Google Sheet ===== */
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: 'issue!A:L',
@@ -120,7 +118,6 @@ async function handleEvent(event) {
       }
     });
 
-    /* ===== ตอบกลับ ===== */
     return client.replyMessage(event.replyToken, {
       type: 'text',
       text:
@@ -131,8 +128,52 @@ async function handleEvent(event) {
     });
   }
 
+  /* ===== CHECK STATUS ===== */
+  if (text.startsWith('#check') || text.startsWith('#status')) {
+
+    const ticketId = text.split(' ')[1];
+
+    if (!ticketId) {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: 'กรุณาระบุเลข Ticket เช่น\n#check T1234567890'
+      });
+    }
+
+    const rows = await getRows();
+
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+
+      if (row[1] === ticketId) {
+
+        const created = row[0];
+        const issueText = row[4];
+        const mainStatus = row[5];
+        const statusUpdate = row[8];
+        const priority = row[7];
+
+        return client.replyMessage(event.replyToken, {
+          type: 'text',
+          text:
+            `🎫 Ticket: ${ticketId}\n` +
+            `📅 วันที่แจ้ง: ${created}\n` +
+            `📌 เรื่อง: ${issueText}\n` +
+            `🚦 ความเร่งด่วน: ${priority}\n` +
+            `📊 สถานะหลัก: ${mainStatus}\n` +
+            `📝 สถานะล่าสุด: ${statusUpdate}`
+        });
+      }
+    }
+
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: `❌ ไม่พบ Ticket ${ticketId}`
+    });
+  }
+
   return null;
-} // ✅ ปิด handleEvent ถูกต้องตรงนี้
+}
 
 /* ================= 1️⃣ SLA CHECK (09:00) ================= */
 cron.schedule('0 9 * * *', async () => {
