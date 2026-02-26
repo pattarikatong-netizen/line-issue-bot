@@ -147,30 +147,27 @@ async function handleEvent(event) {
 
       if (row[1] === ticketId) {
 
-        const created = row[0];
-        const issueText = row[4];
-        const mainStatus = row[5];
-        const statusUpdate = row[8];
-        const priority = row[7];
+  const created = row[0];
+  const issueText = row[4];
+  const mainStatus = row[5];
+  const priority = row[7];
+  const statusUpdate = row[8];
+  const completeDate = row[9] || '-';
+  const remark = row[10] || '-';
 
-        return client.replyMessage(event.replyToken, {
-          type: 'text',
-          text:
-            `🎫 Ticket: ${ticketId}\n` +
-            `📅 วันที่แจ้ง: ${created}\n` +
-            `📌 เรื่อง: ${issueText}\n` +
-            `🚦 ความเร่งด่วน: ${priority}\n` +
-            `📊 สถานะหลัก: ${mainStatus}\n` +
-            `📝 สถานะล่าสุด: ${statusUpdate}`
-        });
-      }
-    }
-
-    return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: `❌ ไม่พบ Ticket ${ticketId}`
-    });
-  }
+  return client.replyMessage(event.replyToken, {
+    type: 'text',
+    text:
+      `🎫 Ticket: ${ticketId}\n` +
+      `📅 วันที่แจ้ง: ${created}\n` +
+      `📌 เรื่อง: ${issueText}\n` +
+      `🚦 ความเร่งด่วน: ${priority}\n` +
+      `📊 สถานะหลัก: ${mainStatus}\n` +
+      `📝 สถานะล่าสุด: ${statusUpdate}\n` +
+      `📆 วันที่คาดว่าจะเสร็จ: ${completeDate}\n` +
+      `📎 หมายเหตุ: ${remark}`
+  });
+}
 
   return null;
 }
