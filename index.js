@@ -306,5 +306,3 @@ cron.schedule('0 17 * * *', async () => {
 app.listen(process.env.PORT || 3000, () => {
   console.log('Server running...');
 });
-  return null;
-}
