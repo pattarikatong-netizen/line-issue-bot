@@ -66,7 +66,11 @@ async function handleEvent(event) {
     const ticketNumber = 'T' + Date.now();
     const userId = event.source.userId;
     const sourceType = event.source.type;
-    const now = new Date().toLocaleString('th-TH');
+    const now = new Date().toLocaleString('th-TH', {
+  timeZone: 'Asia/Bangkok',
+  dateStyle: 'medium',
+  timeStyle: 'short'
+});
 
     const profile = await client.getProfile(userId);
     const displayName = profile.displayName;
