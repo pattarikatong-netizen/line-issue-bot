@@ -48,6 +48,7 @@ app.post('/webhook', line.middleware(config), async (req, res) => {
 
 /* ================= EVENT HANDLER ================= */
 async function handleEvent(event) {
+
   if (event.type !== 'message' || event.message.type !== 'text') {
     return null;
   }
@@ -128,7 +129,7 @@ async function handleEvent(event) {
     });
   }
 
-    /* ===== CHECK STATUS ===== */
+  /* ===== CHECK STATUS ===== */
   if (text.startsWith('#check') || text.startsWith('#status')) {
 
     const ticketId = text.split(' ')[1];
@@ -143,6 +144,7 @@ async function handleEvent(event) {
     const rows = await getRows();
 
     for (let i = 1; i < rows.length; i++) {
+
       const row = rows[i];
 
       if (row[1] === ticketId) {
@@ -172,12 +174,13 @@ async function handleEvent(event) {
 
     return client.replyMessage(event.replyToken, {
       type: 'text',
-      text: `❌ ไม่พบ Ticket ${ticketId}`
+      text: 'ไม่พบ Ticket นี้ในระบบ'
     });
   }
 
   return null;
 }
+
 /* ================= 1️⃣ SLA CHECK (09:00) ================= */
 cron.schedule('0 9 * * *', async () => {
 
@@ -195,6 +198,7 @@ cron.schedule('0 9 * * *', async () => {
     const statusUpdate = row[8];
     const overFlag = row[11];
 
+    if (!created || isNaN(created)) continue;
     if (statusUpdate === 'เสร็จสิ้น' || statusUpdate === 'ยกเลิก') continue;
 
     const diffDays = (now - created) / (1000 * 60 * 60 * 24);
@@ -203,6 +207,7 @@ cron.schedule('0 9 * * *', async () => {
       (priority === 'ปกติ' && diffDays >= 3) ||
       (priority === 'ด่วน' && diffDays >= 1)
     ) {
+
       if (!overFlag) {
 
         await client.pushMessage(userId, {
