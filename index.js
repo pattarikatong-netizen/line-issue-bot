@@ -45,41 +45,101 @@ async function handleEvent(event) {
     return null;
   }
 
-  if (!event.message.text.startsWith('#issue')) {
-    return null;
+  const text = event.message.text.trim();
+
+  // ================= CREATE ISSUE =================
+  if (text.startsWith('#issue')) {
+
+    let issueText = text.replace('#issue', '').trim();
+
+    if (!issueText) {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: 'กรุณาระบุรายละเอียดหลัง #issue ด้วยครับ 🙏'
+      });
+    }
+
+    const isUrgent = issueText.includes('#ด่วน');
+    issueText = issueText.replace('#ด่วน', '').trim();
+    const priority = isUrgent ? 'ด่วน' : 'ปกติ';
+
+    const ticketNumber = 'T' + Date.now();
+    const userId = event.source.userId;
+    const sourceType = event.source.type;
+    const now = new Date().toLocaleString('th-TH');
+
+    const profile = await client.getProfile(userId);
+    const displayName = profile.displayName;
+
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'issue!A:J',
+      valueInputOption: 'USER_ENTERED',
+      requestBody: {
+        values: [[
+          now,            // A Date
+          ticketNumber,   // B TicketID
+          userId,         // C
+          displayName,    // D
+          issueText,      // E
+          'OPEN',         // F Status
+          sourceType,     // G SourceType
+          priority,       // H Priority
+          '',             // I CompleteDate
+          ''              // J Remark
+        ]]
+      }
+    });
+
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: `รับ issue แล้ว 👨‍💻
+เลข Ticket: ${ticketNumber}
+วันที่แจ้ง: ${now}
+ระดับความเร่งด่วน: ${priority}`
+    });
   }
 
-  const issueText = event.message.text.replace('#issue', '').trim();
-  const ticketNumber = 'T' + Date.now();
-  const userId = event.source.userId;
-  const sourceType = event.source.type; // 👈 user / group / room
+  // ================= CHECK STATUS =================
+  if (text.startsWith('#status')) {
 
-  // ดึงชื่อจาก LINE
-  const profile = await client.getProfile(userId);
-  const displayName = profile.displayName;
+    const ticketId = text.replace('#status', '').trim();
 
-  // บันทึกลง Google Sheet
-  await sheets.spreadsheets.values.append({
-    spreadsheetId: SPREADSHEET_ID,
-    range: 'issue!A:G',
-    valueInputOption: 'USER_ENTERED',
-    requestBody: {
-      values: [[
-        new Date().toLocaleString(), // A Date
-        ticketNumber,                // B TicketID
-        userId,                      // C UserId
-        displayName,                 // D DisplayName
-        issueText,                   // E Message
-        'OPEN',                      // F Status
-        sourceType                   // G SourceType
-      ]]
+    if (!ticketId) {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: 'กรุณาระบุ TicketID เช่น #status T123456'
+      });
     }
-  });
 
-  return client.replyMessage(event.replyToken, {
-    type: 'text',
-    text: `รับ issue แล้ว 👨‍💻\nเลข Ticket: ${ticketNumber}`
-  });
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'issue!A:J'
+    });
+
+    const rows = response.data.values || [];
+    const ticketRow = rows.find(row => row[1] === ticketId);
+
+    if (!ticketRow) {
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: 'ไม่พบ Ticket นี้ ❌'
+      });
+    }
+
+    const status = ticketRow[5] || '-';
+    const completeDate = ticketRow[8] || '-';
+    const remark = ticketRow[9] || '-';
+
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: `สถานะ: ${status}
+วันที่แก้ไขเสร็จ: ${completeDate}
+หมายเหตุ: ${remark}`
+    });
+  }
+
+  return null;
 }
 
 // ================= SERVER =================
