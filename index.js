@@ -119,13 +119,13 @@ async function handleEvent(event) {
     });
 
     return client.replyMessage(event.replyToken, {
-      type: 'text',
-      text: `✅ รับเรื่องแล้ว\nTicket: ${ticketNumber}\nความเร่งด่วน: ${priority}`
-    });
-  }
-
-  return null;
-}
+  type: 'text',
+  text:
+    `✅ รับเรื่องแล้ว 🎉\n` +
+    `เลข Ticket: ${ticketNumber}\n` +
+    `วันที่แจ้ง: ${nowText}\n` +
+    `ระดับความเร่งด่วน: ${priority}`
+});
 
 /* ================= 1️⃣ SLA CHECK (09:00) ================= */
 cron.schedule('0 9 * * *', async () => {
