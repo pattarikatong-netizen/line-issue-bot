@@ -14,7 +14,7 @@ const config = {
 const client = new line.Client(config);
 
 // ================= GOOGLE SHEETS CONFIG =================
-const SPREADSHEET_ID = '1eXVw-PJMfluISSXpewOBJjuuPtx7t1vUhtPD3Q-tZUI';
+const SPREADSHEET_ID = process.env.SPREADSHEET_ID;
 
 const serviceAccount = JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT);
 
@@ -41,6 +41,7 @@ app.post('/webhook', line.middleware(config), async (req, res) => {
 
 // ================= EVENT HANDLER =================
 async function handleEvent(event) {
+
   if (event.type !== 'message' || event.message.type !== 'text') {
     return null;
   }
@@ -55,7 +56,7 @@ async function handleEvent(event) {
     if (!issueText) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: 'กรุณาระบุรายละเอียดหลัง #issue ด้วยครับ 🙏'
+        text: 'กรุณาระบุรายละเอียดหลัง #issue'
       });
     }
 
@@ -66,11 +67,12 @@ async function handleEvent(event) {
     const ticketNumber = 'T' + Date.now();
     const userId = event.source.userId;
     const sourceType = event.source.type;
+
     const now = new Date().toLocaleString('th-TH', {
-  timeZone: 'Asia/Bangkok',
-  dateStyle: 'medium',
-  timeStyle: 'short'
-});
+      timeZone: 'Asia/Bangkok',
+      dateStyle: 'medium',
+      timeStyle: 'short'
+    });
 
     const profile = await client.getProfile(userId);
     const displayName = profile.displayName;
@@ -81,26 +83,26 @@ async function handleEvent(event) {
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
-          now,            // A Date
-          ticketNumber,   // B TicketID
-          userId,         // C
-          displayName,    // D
-          issueText,      // E
-          'OPEN',         // F Status
-          sourceType,     // G SourceType
-          priority,       // H Priority
-          '',             // I CompleteDate
-          ''              // J Remark
+          now,
+          ticketNumber,
+          userId,
+          displayName,
+          issueText,
+          'OPEN',
+          sourceType,
+          priority,
+          '',
+          ''
         ]]
       }
     });
 
     return client.replyMessage(event.replyToken, {
       type: 'text',
-      text: `รับ issue แล้ว 👨‍💻
-เลข Ticket: ${ticketNumber}
-วันที่แจ้ง: ${now}
-ระดับความเร่งด่วน: ${priority}`
+      text: `✅ รับเรื่องแล้ว
+Ticket: ${ticketNumber}
+วันที่: ${now}
+ความเร่งด่วน: ${priority}`
     });
   }
 
@@ -127,7 +129,7 @@ async function handleEvent(event) {
     if (!ticketRow) {
       return client.replyMessage(event.replyToken, {
         type: 'text',
-        text: 'ไม่พบ Ticket นี้ ❌'
+        text: 'ไม่พบ Ticket นี้'
       });
     }
 
@@ -137,9 +139,45 @@ async function handleEvent(event) {
 
     return client.replyMessage(event.replyToken, {
       type: 'text',
-      text: `สถานะ: ${status}
-วันที่แก้ไขเสร็จ: ${completeDate}
+      text: `📌 สถานะ
+Status: ${status}
+วันที่เสร็จ: ${completeDate}
 หมายเหตุ: ${remark}`
+    });
+  }
+
+  // ================= SUMMARY (Group Only) =================
+  if (text === '#summary' && event.source.type === 'group') {
+
+    const response = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: 'issue!A:J'
+    });
+
+    const rows = response.data.values || [];
+
+    const today = new Date().toLocaleDateString('th-TH', {
+      timeZone: 'Asia/Bangkok'
+    });
+
+    let newToday = 0;
+    let openTotal = 0;
+
+    for (let i = 1; i < rows.length; i++) {
+
+      const row = rows[i];
+      const createdDate = row[0] || '';
+      const status = row[5] || '';
+
+      if (createdDate.includes(today)) newToday++;
+      if (status === 'OPEN') openTotal++;
+    }
+
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: `📊 สรุปวันนี้
+รับใหม่: ${newToday}
+งานค้าง (OPEN): ${openTotal}`
     });
   }
 
