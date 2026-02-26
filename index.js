@@ -43,31 +43,44 @@ app.post('/webhook', line.middleware(config), async (req, res) => {
 // ================= EVENT HANDLER =================
 async function handleEvent(event) {
   if (event.type !== 'message' || event.message.type !== 'text') {
-    return null;
+    return Promise.resolve(null);
   }
 
   if (event.message.text.startsWith('#issue')) {
 
     const issueText = event.message.text.replace('#issue', '').trim();
     const ticketNumber = 'T' + Date.now();
+    const userId = event.source.userId;
 
-    // บันทึกลง Google Sheet
+    // ดึงชื่อจาก LINE
+    const profile = await client.getProfile(userId);
+    const displayName = profile.displayName;
+
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: 'issue!A:F',
+      range: 'issue!A:G',   // 👈 ตอนนี้ต้องเป็น A:G
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
-          new Date().toLocaleString(), // Date
-          ticketNumber,               // TicketID
-          event.source.userId,        // UserId
-          issueText,                  // Message
-          'OPEN',                     // Status
-          event.source.type           // Source (group/user)
+          new Date().toLocaleString(), // A Date
+          ticketNumber,                // B TicketID
+          userId,                      // C UserId
+          displayName,                 // D DisplayName
+          issueText,                   // E Message
+          'OPEN',                      // F Status
+          'LINE'                       // G Source
         ]]
       }
     });
 
+    return client.replyMessage(event.replyToken, {
+      type: 'text',
+      text: `รับ issue แล้ว 👨‍💻\nเลข Ticket: ${ticketNumber}`
+    });
+  }
+
+  return Promise.resolve(null);
+}
     // ตอบกลับในไลน์
     return client.replyMessage(event.replyToken, {
       type: 'text',
