@@ -54,7 +54,7 @@ async function handleEvent(event) {
     // บันทึกลง Google Sheet
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
-      range: 'รับ issue!A:F',
+      range: 'issue!A:F',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
