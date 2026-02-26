@@ -56,6 +56,7 @@ async function handleEvent(event) {
 
   /* ===== CREATE ISSUE ===== */
   if (text.startsWith('#issue')) {
+
     let issueText = text.replace('#issue', '').trim();
 
     if (!issueText) {
@@ -96,43 +97,51 @@ async function handleEvent(event) {
       console.log("Profile error:", err.message);
     }
 
+    /* ===== บันทึกลง Google Sheet ===== */
     await sheets.spreadsheets.values.append({
       spreadsheetId: SPREADSHEET_ID,
       range: 'issue!A:L',
       valueInputOption: 'USER_ENTERED',
       requestBody: {
         values: [[
-          nowText,          // A วันที่แจ้ง
-          ticketNumber,     // B TicketID
-          userId,           // C UserID
-          displayName,      // D ชื่อ
-          issueText,        // E รายละเอียด
-          'OPEN',           // F Status
-          sourceType,       // G ประเภท
-          priority,         // H ความเร่งด่วน
-          'รับเรื่องแล้ว',  // I Status Update
-          '',               // J CompleteDate
-          '',               // K Remark
-          ''                // L Overdue
+          nowText,
+          ticketNumber,
+          userId,
+          displayName,
+          issueText,
+          'OPEN',
+          sourceType,
+          priority,
+          'รับเรื่องแล้ว',
+          '',
+          '',
+          ''
         ]]
       }
     });
 
+    /* ===== ตอบกลับ ===== */
     return client.replyMessage(event.replyToken, {
-  type: 'text',
-  text:
-    `✅ รับเรื่องแล้ว 🎉\n` +
-    `เลข Ticket: ${ticketNumber}\n` +
-    `วันที่แจ้ง: ${nowText}\n` +
-    `ระดับความเร่งด่วน: ${priority}`
-});
+      type: 'text',
+      text:
+        `✅ รับเรื่องแล้ว 🎉\n` +
+        `เลข Ticket: ${ticketNumber}\n` +
+        `วันที่แจ้ง: ${nowText}\n` +
+        `ระดับความเร่งด่วน: ${priority}`
+    });
+  }
+
+  return null;
+} // ✅ ปิด handleEvent ถูกต้องตรงนี้
 
 /* ================= 1️⃣ SLA CHECK (09:00) ================= */
 cron.schedule('0 9 * * *', async () => {
+
   const rows = await getRows();
   const now = new Date();
 
   for (let i = 1; i < rows.length; i++) {
+
     const row = rows[i];
 
     const created = new Date(row[0]);
@@ -151,6 +160,7 @@ cron.schedule('0 9 * * *', async () => {
       (priority === 'ด่วน' && diffDays >= 1)
     ) {
       if (!overFlag) {
+
         await client.pushMessage(userId, {
           type: 'text',
           text: `⏰ งานของคุณเกินกำหนด\nTicket: ${ticketId}`
@@ -167,13 +177,16 @@ cron.schedule('0 9 * * *', async () => {
       }
     }
   }
+
 }, { timezone: "Asia/Bangkok" });
 
 /* ================= 2️⃣ CHECK CLOSED (ทุก 5 นาที) ================= */
 cron.schedule('*/5 * * * *', async () => {
+
   const rows = await getRows();
 
   for (let i = 1; i < rows.length; i++) {
+
     const row = rows[i];
 
     const ticketId = row[1];
@@ -185,6 +198,7 @@ cron.schedule('*/5 * * * *', async () => {
       (statusUpdate === 'เสร็จสิ้น' || statusUpdate === 'ยกเลิก') &&
       mainStatus !== 'CLOSED'
     ) {
+
       await sheets.spreadsheets.values.update({
         spreadsheetId: SPREADSHEET_ID,
         range: `issue!F${i + 1}`,
@@ -196,14 +210,19 @@ cron.schedule('*/5 * * * *', async () => {
 
       await client.pushMessage(userId, {
         type: 'text',
-        text: `✅ งานของคุณปิดแล้ว\nTicket: ${ticketId}\nสถานะ: ${statusUpdate}`
+        text:
+          `✅ งานของคุณปิดแล้ว\n` +
+          `Ticket: ${ticketId}\n` +
+          `สถานะ: ${statusUpdate}`
       });
     }
   }
+
 }, { timezone: "Asia/Bangkok" });
 
 /* ================= 3️⃣ DAILY SUMMARY (17:00) ================= */
 cron.schedule('0 17 * * *', async () => {
+
   const rows = await getRows();
 
   let newToday = 0;
@@ -216,6 +235,7 @@ cron.schedule('0 17 * * *', async () => {
   });
 
   for (let i = 1; i < rows.length; i++) {
+
     const row = rows[i];
     const created = row[0] || '';
     const statusUpdate = row[8] || '';
@@ -235,6 +255,7 @@ cron.schedule('0 17 * * *', async () => {
       `รอข้อมูลเพิ่ม: ${waiting}\n` +
       `รับเรื่องแล้ว: ${received}`
   });
+
 }, { timezone: "Asia/Bangkok" });
 
 /* ================= SERVER ================= */
